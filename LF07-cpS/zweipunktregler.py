@@ -141,6 +141,7 @@ def main():
             fan.off()   
         print ("Lüfter: ", fan.get_state()) 
         print ("hello")
+        print ("Und hier ein hello von remote")
 # ********************* Ende Funktion main()
 
 #  ********************* Hauptprogramm
