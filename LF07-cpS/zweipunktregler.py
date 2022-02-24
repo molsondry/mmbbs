@@ -140,6 +140,7 @@ def main():
         else:
             fan.off()   
         print ("Lüfter: ", fan.get_state()) 
+        print ("hello")
 # ********************* Ende Funktion main()
 
 #  ********************* Hauptprogramm
