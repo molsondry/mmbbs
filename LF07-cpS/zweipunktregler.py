@@ -133,12 +133,13 @@ def main():
 
     while True:
         mycloud.set_roomTemp(tempsen1.get_celsius()) # aktuelle Temperatur in die Cloud schreiben
-
+        print ("Raumtemp.: ", mycloud.get_roomTemp())
         temp=float(mycloud.get_roomTemp())
         if (zpr.kuehlen(temp)==True):
             fan.on()
         else:
-            fan.off()    
+            fan.off()   
+        print ("Lüfter: ", fan.get_state()) 
 # ********************* Ende Funktion main()
 
 #  ********************* Hauptprogramm
