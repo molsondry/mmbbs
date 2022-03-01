@@ -31,7 +31,7 @@ class Fan():
         self.gpio = gpio # GPIO Nr. des Lüfters
         GPIO.setmode(GPIO.BCM) # mit GPIO Bezeichnungen arbeiten
         GPIO.setup(self.gpio, GPIO.OUT) # Fan GPIO als Ausgang schalten
-        self.off(self)
+        self.off()
  
     def set_gpioState(self):        
         if (self.state==True):
@@ -124,7 +124,7 @@ class Cloud():
 # ********************* Ende class Cloud
 def main():
     mycloud=Cloud("localhost", "serverraum/1")
-    mycloud.set_setpointTemp(20)
+    mycloud.set_setpointTemp(25)
     mycloud.set_hyst(3)
     mycloud.set_gpioFan(18) # das ist auch der Pin für PWM
 
