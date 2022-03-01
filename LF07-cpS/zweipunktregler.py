@@ -141,15 +141,9 @@ def main():
             print ("Fan ist an")
         else:
             fan.off()   
-<<<<<<< HEAD
             print ("Fan ist aus")
         print ("Temp.: ", mycloud.get_roomTemp())
 
-=======
-        print ("Lüfter: ", fan.get_state()) 
-        print ("hello")
-        print ("Und hier ein hello von remote")
->>>>>>> af02393eecc4acdd598754c395e3c6f096550c14
 # ********************* Ende Funktion main()
 
 #  ********************* Hauptprogramm
