@@ -4,9 +4,9 @@ import paho.mqtt.subscribe as subscribe
 
 class Zpr():
     def __init__(self, setpoint, hysteresis):
-        self.splow=setpoint # untere Grenze
-        self.hyst=hysteresis #Hysterese speichern
-        self.sphigh=setpoint+hysteresis # obere Grenze
+        self.splow=float(setpoint) # untere Grenze
+        self.hyst=float(hysteresis) #Hysterese speichern
+        self.sphigh=float(setpoint)+float(hysteresis) # obere Grenze
         self.state=False  # Reglerausgang per default ausschalten
 
     def kuehlen(self, temperature):
@@ -18,9 +18,9 @@ class Zpr():
         return self.state # Wenn der Regler im Bereich der Hysterese liegt, nichts am Zustand ändern
 
     def set_splow (self,setpoint):
-        self.splow=setpoint
+        self.splow=float(setpoint)
     def set_hyst (self, hysteresis):
-        self.hyst=hysteresis
+        self.hyst=float(hysteresis)
     def set_sphigh (self):
         self.sphigh=self.splow+self.hyst
 # ********************* Ende class Zpr
@@ -31,12 +31,13 @@ class Fan():
         self.gpio = gpio # GPIO Nr. des Lüfters
         GPIO.setmode(GPIO.BCM) # mit GPIO Bezeichnungen arbeiten
         GPIO.setup(self.gpio, GPIO.OUT) # Fan GPIO als Ausgang schalten
+        self.off(self)
  
     def set_gpioState(self):        
         if (self.state==True):
-            GPIO.output(self.gpio, GPIO.HIGH)
+            GPIO.output(self.gpio, 1) # GPIO.HIGH
         else:
-            GPIO.output(self.gpio, GPIO.LOW)
+            GPIO.output(self.gpio, 0) # GPIO.LOW
 
     def on(self):
         self.state = True # Lüfter an
@@ -56,7 +57,7 @@ class Ds18b20():
         self.w1_dir = '/sys/bus/w1/devices/' + self.w1_address + '/w1_slave'
         self.tempCelsius = 255.0
 
-    def get_celsius() : 
+    def get_celsius(self) : 
         # cat self.w1_dir würde vom DS18B20 liefern:
         # 75 01 4b 46 7f ff 0b 10 78 : crc=78 YES
         # 75 01 4b 46 7f ff 0b 10 78 t=23312
@@ -93,31 +94,31 @@ class Cloud():
         self.topicGpioFan = basetopic + "gpiofan"
 
     def get_roomTemp(self): # Serverraumtemperatur aus der Cloud lesen
-        self.roomTemp = subscribe.simple(self.topicRoomTemp, hostname=self.hostname)
+        self.roomTemp = float((subscribe.simple(self.topicRoomTemp, hostname=self.hostname, retained=True)).payload)
         return self.roomTemp
     def set_roomTemp(self, temp): # Serverraumtemperatur in Cloud schreiben (macht eigentlich nur Sinn, wenn auf diesem Raspi die Temperaturmessung stattfindet)
-        publish.single(self.topicRoomTemp, temp, hostname=self.hostname)
+        publish.single(self.topicRoomTemp, temp, hostname=self.hostname, retain=True)
         return
 
     def get_setpointTemp(self): # Solltemperatur aus der Cloud lesen
-        self.setpointTemp = subscribe.simple(self.topicSetpointTemp, hostname=self.hostname)
+        self.setpointTemp = float((subscribe.simple(self.topicSetpointTemp, hostname=self.hostname, retained=True)).payload)
         return self.setpointTemp
     def set_setpointTemp(self, setpointTemp): # Solltemperatur in die Cloud schreiben
-        publish.single(self.topicSetpointTemp, setpointTemp, hostname=self.hostname)
+        publish.single(self.topicSetpointTemp, setpointTemp, hostname=self.hostname, retain=True)
         return
         
     def get_hyst(self): # Hysterese aus der Cloud lesen
-        self.hyst = subscribe.simple(self.topicHyst, hostname=self.hostname)
+        self.hyst = float((subscribe.simple(self.topicHyst, hostname=self.hostname, retained=True)).payload)
         return self.hyst
     def set_hyst(self, hyst): # Hysterese in die Cloud schreiben
-        publish.single(self.topicHyst, hyst, hostname=self.hostname)
+        publish.single(self.topicHyst, hyst, hostname=self.hostname, retain=True)
         return
 
     def get_gpioFan(self):
-        self.gpioFan = subscribe.simple(self.topicGpioFan, hostname=self.hostname)
+        self.gpioFan = int((subscribe.simple(self.topicGpioFan, hostname=self.hostname, retained=True)).payload)
         return self.gpioFan
     def set_gpioFan(self, gpioFan): # GPIO Kanal für Ventilator in die Cloud schreiben
-        publish.single(self.topicGpioFan, gpioFan, hostname=self.hostname)
+        publish.single(self.topicGpioFan, gpioFan, hostname=self.hostname, retain=True)
         return
 
 # ********************* Ende class Cloud
@@ -137,8 +138,12 @@ def main():
         temp=float(mycloud.get_roomTemp())
         if (zpr.kuehlen(temp)==True):
             fan.on()
+            print ("Fan ist an")
         else:
-            fan.off()    
+            fan.off()   
+            print ("Fan ist aus")
+        print ("Temp.: ", mycloud.get_roomTemp())
+
 # ********************* Ende Funktion main()
 
 #  ********************* Hauptprogramm
