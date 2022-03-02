@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 import paho.mqtt.publish as publish
 import paho.mqtt.subscribe as subscribe
+import time
 
 class Zpr():
     def __init__(self, setpoint, hysteresis):
