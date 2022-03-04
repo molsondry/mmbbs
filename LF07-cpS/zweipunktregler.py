@@ -28,28 +28,28 @@ class Zpr():
 
 class Fan():
     def __init__(self, gpio):
-        self.state = False # Lüfter per default ausschalten
-        self.gpio = gpio # GPIO Nr. des Lüfters
+        self.__state = False # Lüfter per default ausschalten
+        self.__gpio = gpio # GPIO Nr. des Lüfters
         GPIO.setmode(GPIO.BCM) # mit GPIO Bezeichnungen arbeiten
-        GPIO.setup(self.gpio, GPIO.OUT) # Fan GPIO als Ausgang schalten
+        GPIO.setup(self.__gpio, GPIO.OUT) # Fan GPIO als Ausgang schalten
         self.off()
  
-    def set_gpioState(self):        
-        if (self.state==True):
-            GPIO.output(self.gpio, 1) # GPIO.HIGH
+    def __set_gpioState(self):        
+        if (self.__state==True):
+            GPIO.output(self.__gpio, 1) # GPIO.HIGH
         else:
-            GPIO.output(self.gpio, 0) # GPIO.LOW
+            GPIO.output(self.__gpio, 0) # GPIO.LOW
 
     def on(self):
-        self.state = True # Lüfter an
-        self.set_gpioState() # hier nun die GPIO-Ansteuerung rein
+        self.__state = True # Lüfter an
+        self.__set_gpioState() # hier nun die GPIO-Ansteuerung rein
 
     def off(self):
-        self.state = False # Lüfter aus
-        self.set_gpioState() # hier nun die GPIO-Ansteuerung rein
+        self.__state = False # Lüfter aus
+        self.__set_gpioState() # hier nun die GPIO-Ansteuerung rein
 
     def get_state(self):
-        return self.state    
+        return self.__state    
 # ********************* Ende class Fan
 
 class Ds18b20():
@@ -125,7 +125,7 @@ class Cloud():
 # ********************* Ende class Cloud
 def main():
     mycloud=Cloud("localhost", "serverraum/1")
-    mycloud.set_setpointTemp(25)
+    mycloud.set_setpointTemp(26)
     mycloud.set_hyst(3)
     mycloud.set_gpioFan(18) # das ist auch der Pin für PWM
 
