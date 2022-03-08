@@ -121,7 +121,7 @@ class Cloud():
     def update(self): # Hier steht erstmal nur die Raumtemp., es können aber weitere Parameter zur Aktualisierung eingebaut werden
         temp = self.__tempsen.get_celsius()
         self.__roomTemp = temp
-        self.__set_roomTemp(temp)
+        self.set_roomTemp(temp)
         return
 
 # ********************* Ende class Cloud
@@ -133,11 +133,12 @@ def main():
     mycloud.set_gpioFan(18) # Pin 18 ermöglicht optional PWM
 
     myfan=Fan(mycloud.get_gpioFan()) # Erste Abfrage in die Cloud
-    raumklima=Regelstrecke (mycloud, myfan) # Speicherort für Sensorwerte und Aktor
+    raumklima=Regelstrecke (mycloud, myfan) # Speicherort für Sensorwerte und Aktor als Parameter übergeben
  
     while True:
         mycloud.update() # aktuelle Temperatur (usw.) in die Cloud schreiben
         raumklima.regeln()
+        # Ab hier nur noch Debugging Infos
         print ("Raumtemp.: ", mycloud.get_roomTemp())
         temp=float(mycloud.get_roomTemp())
         if (myfan.get_state()==True):
