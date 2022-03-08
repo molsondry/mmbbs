@@ -3,53 +3,48 @@ import paho.mqtt.publish as publish
 import paho.mqtt.subscribe as subscribe
 import time
 
-class Zpr():
-    def __init__(self, setpoint, hysteresis):
-        self.__splow=float(setpoint) # untere Grenze
-        self.__hyst=float(hysteresis) #Hysterese speichern
-        self.set_sphigh() # obere Grenze
-        self.__state=False  # Reglerausgang per default ausschalten
+class Regelstrecke():
+    def __init__(self, cloud, fan):
+        self.__cloud=cloud # Konfigurationen und Werte
+        self.__fan=fan # Der Aktor für den Zweipunktregler
+        self.__splow=self.__cloud.get_setpointTemp() # untere Grenze
+        self.__hyst=self.__cloud.get_hyst() #Hysterese speichern
+        self.__sphigh=self.__splow+self.__hyst # obere Grenze
 
-    def kuehlen(self, temperature):
-        # wird True zurückgeben, wenn gekühlt werden muss
+    def regeln(self):
+        # Vergleich Ist- und Solltemperatur und Kühlung ansteuern
+        # hier ist der Regler als Zweipunktregler mit Hysterese implementiert
+        temperature = self.__cloud.get_roomTemp() # Aktuelle Temperatur aus der Cloud lesen
+
         if temperature <= self.__splow:
-            self.state=False # Kühlung ausschalten, wenn es kalt ist
+            self.__fan.off() # Kühlung ausschalten, wenn es kalt ist
         elif temperature > self.__sphigh:
-            self.__state=True # Kühlung einschalten, wenn es zu warm wird
-        return self.__state # Wenn der Regler im Bereich der Hysterese liegt, nichts am Zustand ändern
+            self.__fan.on() # Kühlung einschalten, wenn es zu warm wird
+        return
 
-    def set_splow (self,setpoint):
-        self.__splow=float(setpoint)
-    def set_hyst (self, hysteresis):
-        self.__hyst=float(hysteresis)
-    def set_sphigh (self):
-        self.__sphigh=self.__splow+self.__hyst
-# ********************* Ende class Zpr
+# ********************* Ende class Regelstrecke
 
 class Fan():
     def __init__(self, gpio):
-        self.__state = False # Lüfter per default ausschalten
         self.__gpio = gpio # GPIO Nr. des Lüfters
         GPIO.setmode(GPIO.BCM) # mit GPIO Bezeichnungen arbeiten
         GPIO.setup(self.__gpio, GPIO.OUT) # Fan GPIO als Ausgang schalten
-        self.off()
- 
-    def __set_gpioState(self):        
-        if (self.__state==True):
-            GPIO.output(self.__gpio, 1) # GPIO.HIGH
-        else:
-            GPIO.output(self.__gpio, 0) # GPIO.LOW
+        self.off() # Lüfter per default ausschalten
+        self.__state = False # Zustand merken für Debuggingzwecke (siehe main())
 
     def on(self):
-        self.__state = True # Lüfter an
-        self.__set_gpioState() # hier nun die GPIO-Ansteuerung rein
+        GPIO.output(self.__gpio, 1) # GPIO.HIGH, Lüfter an
+        self.__state = True # Zustand merken
+        return
 
     def off(self):
-        self.__state = False # Lüfter aus
-        self.__set_gpioState() # hier nun die GPIO-Ansteuerung rein
+        GPIO.output(self.__gpio, 0) # GPIO.LOW, Lüfter aus
+        self.__state = False # Zustand merken
+        return
 
     def get_state(self):
-        return self.__state    
+        return self.__state
+  
 # ********************* Ende class Fan
 
 class Ds18b20():
@@ -82,7 +77,7 @@ class Ds18b20():
 
 class Cloud():
     # in dieser Klasse realisiert mit einem MQTT Broker
-    def __init__(self, hostname, basetopic):
+    def __init__(self, hostname, basetopic, tempsen):
         self.__roomTemp=255.0 # Isttemperatur
         self.__setpointTemp=255.0 # Solltemperatur
         self.__hyst=255.0 #Hysterese
@@ -93,6 +88,7 @@ class Cloud():
         self.__topicSetpointTemp = basetopic + "setpointtemp" # Topic für die Solltemperatur
         self.__topicHyst = basetopic + "hyst" # Topic für die Hysterese
         self.__topicGpioFan = basetopic + "gpiofan" # Topic für die GPIO Nr. des Lüfters
+        self.__tempsen=tempsen # Der benutzte Temperatursensor
 
     def get_roomTemp(self): # Serverraumtemperatur aus der Cloud lesen
         self.__roomTemp = float((subscribe.simple(self.__topicRoomTemp, hostname=self.__hostname, retained=True)).payload)
@@ -122,29 +118,34 @@ class Cloud():
         publish.single(self.__topicGpioFan, gpioFan, hostname=self.__hostname, retain=True)
         return
 
+    def update(self): # Hier steht erstmal nur die Raumtemp., es können aber weitere Parameter zur Aktualisierung eingebaut werden
+        temp = self.__tempsen.get_celsius()
+        self.__roomTemp = temp
+        self.__set_roomTemp(temp)
+        return
+
 # ********************* Ende class Cloud
 def main():
-    mycloud=Cloud("localhost", "serverraum/1")
-    mycloud.set_setpointTemp(26)
-    mycloud.set_hyst(3)
-    mycloud.set_gpioFan(18) # das ist auch der Pin für PWM
-
-    zpr=Zpr(mycloud.get_setpointTemp(),mycloud.get_hyst()) # Sollwert und Hysterese
-    fan=Fan(mycloud.get_gpioFan())
     tempsen1=Ds18b20("28-000006dccb21")
+    mycloud=Cloud("localhost", "serverraum/1", tempsen1) # URL des MQTT-Brokers, Basistopic und Quelle für Raumtemperatur
+    mycloud.set_setpointTemp(26) # Unterer Schaltpunkt des Reglers
+    mycloud.set_hyst(3) # Hysterese des Reglers
+    mycloud.set_gpioFan(18) # Pin 18 ermöglicht optional PWM
 
+    myfan=Fan(mycloud.get_gpioFan()) # Erste Abfrage in die Cloud
+    raumklima=Regelstrecke (mycloud, myfan) # Speicherort für Sensorwerte und Aktor
+ 
     while True:
-        mycloud.set_roomTemp(tempsen1.get_celsius()) # aktuelle Temperatur in die Cloud schreiben
+        mycloud.update() # aktuelle Temperatur (usw.) in die Cloud schreiben
+        raumklima.regeln()
         print ("Raumtemp.: ", mycloud.get_roomTemp())
         temp=float(mycloud.get_roomTemp())
-        if (zpr.kuehlen(temp)==True):
-            fan.on()
+        if (myfan.get_state()==True):
             print ("Fan ist an")
         else:
-            fan.off()   
             print ("Fan ist aus")
-        print ("Temp.: ", mycloud.get_roomTemp())
-
+    return
+ 
 # ********************* Ende Funktion main()
 
 #  ********************* Hauptprogramm
