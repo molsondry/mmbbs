@@ -3,7 +3,7 @@ import paho.mqtt.publish as publish
 import paho.mqtt.subscribe as subscribe
 import time
 
-class Regelstrecke():
+class Controller():
     def __init__(self, cloud, fan):
         self.__cloud=cloud # Konfigurationen und Werte
         self.__fan=fan # Der Aktor für den Zweipunktregler
@@ -11,7 +11,7 @@ class Regelstrecke():
         self.__hyst=self.__cloud.get_hyst() #Hysterese speichern
         self.__sphigh=self.__splow+self.__hyst # obere Grenze
 
-    def regeln(self):
+    def control(self):
         # Vergleich Ist- und Solltemperatur und Kühlung ansteuern
         # hier ist der Regler als Zweipunktregler mit Hysterese implementiert
         temperature = self.__cloud.get_roomTemp() # Aktuelle Temperatur aus der Cloud lesen
@@ -133,11 +133,11 @@ def main():
     mycloud.set_gpioFan(18) # Pin 18 ermöglicht optional PWM
 
     myfan=Fan(mycloud.get_gpioFan()) # Erste Abfrage in die Cloud
-    raumklima=Regelstrecke (mycloud, myfan) # Speicherort für Sensorwerte und Aktor als Parameter übergeben
+    climate=Controller(mycloud, myfan) # Speicherort für Sensorwerte und Aktor als Parameter übergeben
  
     while True:
         mycloud.update() # aktuelle Temperatur (usw.) in die Cloud schreiben
-        raumklima.regeln()
+        climate.control()
         # Ab hier nur noch Debugging Infos
         print ("Raumtemp.: ", mycloud.get_roomTemp())
         temp=float(mycloud.get_roomTemp())
