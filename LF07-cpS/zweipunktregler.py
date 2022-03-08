@@ -138,7 +138,8 @@ def main():
     while True:
         mycloud.update() # aktuelle Temperatur (usw.) in die Cloud schreiben
         climate.control()
-        # Ab hier nur noch Debugging Infos
+
+        # Ab hier eigentlich unnötig, nur noch Debugging Infos
         print ("Raumtemp.: ", mycloud.get_roomTemp())
         temp=float(mycloud.get_roomTemp())
         if (myfan.get_state()==True):
