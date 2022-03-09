@@ -119,9 +119,9 @@ class Cloud():
         return
 
     def update(self): # Hier steht erstmal nur die Raumtemp., es können aber weitere Parameter zur Aktualisierung eingebaut werden
-        temp = self.__tempsen.get_celsius()
-        self.__roomTemp = temp
-        self.set_roomTemp(temp)
+        temp = self.__tempsen.get_celsius() # Auslesen der aktuellen Temperatur aus dem Sensor
+        self.__roomTemp = temp # Im Objektattribut speichern
+        self.set_roomTemp(temp) # Im Cloudspeicher aktualisieren
         return
 
 # ********************* Ende class Cloud
