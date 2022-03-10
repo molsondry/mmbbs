@@ -126,18 +126,18 @@ class Cloud():
 
 # ********************* Ende class Cloud
 def main():
-    tempsen1=Ds18b20("28-000006dccb21")
+    tempsen1=Ds18b20("28-000006dccb21") # Temperatursensorobjekt erzeugen, hier Seriennummer anpassen
     mycloud=Cloud("localhost", "serverraum/1", tempsen1) # URL des MQTT-Brokers, Basistopic und Quelle für Raumtemperatur
-    mycloud.set_setpointTemp(26) # Unterer Schaltpunkt des Reglers
-    mycloud.set_hyst(3) # Hysterese des Reglers
-    mycloud.set_gpioFan(18) # Pin 18 ermöglicht optional PWM
+    mycloud.set_setpointTemp(26) # Unterer Schaltpunkt des Reglers in °C
+    mycloud.set_hyst(3) # Hysterese des Reglers in Kelvin
+    mycloud.set_gpioFan(18) # GPIO Nr. für den Lüfteranschluss, Pin 18 ermöglicht optional PWM
 
-    myfan=Fan(mycloud.get_gpioFan()) # Erste Abfrage in die Cloud
-    climate=Controller(mycloud, myfan) # Speicherort für Sensorwerte und Aktor als Parameter übergeben
+    myfan=Fan(mycloud.get_gpioFan()) # Lüfterobjekt erstellen und in der Cloud den GPIO dafür abfragen
+    climate=Controller(mycloud, myfan) # Reglerobjekt erzeugen, Speicherort für Sensorwerte und Aktor als Parameter übergeben
  
     while True:
         mycloud.update() # aktuelle Temperatur (usw.) in die Cloud schreiben
-        climate.control()
+        climate.control() # Regler in Gang setzen
 
         # Ab hier eigentlich unnötig, nur noch Debugging Infos
         print ("Raumtemp.: ", mycloud.get_roomTemp())
